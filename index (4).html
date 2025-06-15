@@ -1,0 +1,2211 @@
+<html lang="en" class="scroll-smooth" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scrapbook Diary App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Indie+Flower&family=Montserrat:wght@400;600&family=Pacifico&family=Roboto+Slab&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* Custom scrollbar for stickers and music libraries */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background-color: #cbd5e1;
+      border-radius: 4px;
+    }
+    /* Draggable sticker styles */
+    .draggable {
+      touch-action: none;
+      position: absolute;
+      cursor: grab;
+      user-select: none;
+      transition: box-shadow 0.2s ease;
+    }
+    .draggable:active {
+      cursor: grabbing;
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+    /* Rotation and resize handles */
+    .resize-handle {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border: 2px solid #4b5563;
+      border-radius: 50%;
+      cursor: nwse-resize;
+      user-select: none;
+      z-index: 10;
+    }
+    .rotate-handle {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: white;
+      border: 2px solid #4b5563;
+      border-radius: 50%;
+      cursor: grab;
+      user-select: none;
+      z-index: 10;
+    }
+    .rotate-handle:active {
+      cursor: grabbing;
+    }
+    /* Sound bars animation */
+    .sound-bars > div {
+      display: inline-block;
+      width: 4px;
+      height: 10px;
+      margin: 0 1px;
+      background: #4f46e5;
+      animation: soundPulse 1s infinite ease-in-out;
+      border-radius: 2px;
+    }
+    .sound-bars > div:nth-child(1) {
+      animation-delay: 0s;
+    }
+    .sound-bars > div:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    .sound-bars > div:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    .sound-bars > div:nth-child(4) {
+      animation-delay: 0.6s;
+    }
+    .sound-bars > div:nth-child(5) {
+      animation-delay: 0.8s;
+    }
+    @keyframes soundPulse {
+      0%, 100% {
+        height: 10px;
+        background: #4f46e5;
+      }
+      50% {
+        height: 20px;
+        background: #a5b4fc;
+      }
+    }
+    /* Polaroid style frames */
+    .polaroid-frame {
+      background: white;
+      padding: 8px 8px 24px 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      border-radius: 6px;
+      position: relative;
+      user-select: none;
+    }
+    .polaroid-frame .caption {
+      position: absolute;
+      bottom: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Indie Flower', cursive;
+      font-size: 0.75rem;
+      color: #374151;
+      user-select: text;
+    }
+    /* Decorative tape */
+    .decorative-tape {
+      position: absolute;
+      width: 60px;
+      height: 20px;
+      background: repeating-linear-gradient(
+        45deg,
+        #f87171,
+        #f87171 5px,
+        #ef4444 5px,
+        #ef4444 10px
+      );
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      user-select: none;
+    }
+    /* Vintage filter */
+    .filter-vintage {
+      filter: sepia(0.4) contrast(1.1) brightness(0.9);
+    }
+    /* Soft glow filter */
+    .filter-softglow {
+      filter: drop-shadow(0 0 6px #fbbf24);
+    }
+    /* Warm fade filter */
+    .filter-warmfade {
+      filter: brightness(1.1) saturate(1.2) sepia(0.2);
+    }
+    /* Locked sticker overlay */
+    .locked-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(255,255,255,0.6);
+      cursor: not-allowed;
+      border-radius: 6px;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-pink-50 to-pink-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 font-sans min-h-screen flex flex-col">
+
+  <!-- APP LOCK MODAL -->
+  <div id="appLockModal" class="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-50 p-4" aria-modal="true" role="dialog" aria-labelledby="lockTitle" aria-describedby="lockDesc">
+    <h2 id="lockTitle" class="text-3xl font-semibold mb-4 text-pink-300">Enter Your PIN to Unlock</h2>
+    <p id="lockDesc" class="mb-6 text-pink-200">Your diary is protected. Please enter your 4-digit PIN.</p>
+    <input
+      id="pinInput"
+      type="password"
+      maxlength="4"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      class="w-40 text-center text-2xl rounded-md p-2 border-2 border-pink-300 focus:outline-none focus:ring-4 focus:ring-pink-400 bg-pink-50 text-pink-900 font-mono tracking-widest"
+      aria-label="PIN input"
+      autocomplete="off"
+      autofocus
+    />
+    <button id="pinSubmitBtn" class="mt-6 bg-pink-400 hover:bg-pink-500 text-white font-semibold py-2 px-6 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300" aria-label="Submit PIN">Unlock</button>
+    <p id="pinError" class="mt-4 text-red-400 font-semibold hidden" role="alert">Incorrect PIN. Try again.</p>
+    <button id="setPinBtn" class="mt-8 text-pink-300 underline hover:text-pink-400 focus:outline-none" aria-label="Set or change PIN">Set / Change PIN</button>
+  </div>
+
+  <!-- SET PIN MODAL -->
+  <div id="setPinModal" class="fixed inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center z-60 p-4 hidden" aria-modal="true" role="dialog" aria-labelledby="setPinTitle" aria-describedby="setPinDesc">
+    <h2 id="setPinTitle" class="text-3xl font-semibold mb-4 text-pink-300">Set Your 4-Digit PIN</h2>
+    <p id="setPinDesc" class="mb-6 text-pink-200">Choose a secure PIN to protect your diary entries.</p>
+    <input
+      id="newPinInput"
+      type="password"
+      maxlength="4"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      class="w-40 text-center text-2xl rounded-md p-2 border-2 border-pink-300 focus:outline-none focus:ring-4 focus:ring-pink-400 bg-pink-50 text-pink-900 font-mono tracking-widest"
+      aria-label="New PIN input"
+      autocomplete="off"
+      autofocus
+    />
+    <input
+      id="confirmPinInput"
+      type="password"
+      maxlength="4"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      class="w-40 text-center text-2xl rounded-md p-2 border-2 border-pink-300 focus:outline-none focus:ring-4 focus:ring-pink-400 bg-pink-50 text-pink-900 font-mono tracking-widest mt-4"
+      aria-label="Confirm PIN input"
+      autocomplete="off"
+    />
+    <button id="savePinBtn" class="mt-6 bg-pink-400 hover:bg-pink-500 text-white font-semibold py-2 px-6 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300" aria-label="Save PIN">Save PIN</button>
+    <button id="cancelSetPinBtn" class="mt-4 text-pink-300 underline hover:text-pink-400 focus:outline-none" aria-label="Cancel setting PIN">Cancel</button>
+    <p id="setPinError" class="mt-4 text-red-400 font-semibold hidden" role="alert"></p>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="app" class="flex flex-col flex-1 max-w-7xl mx-auto w-full h-full">
+
+    <!-- HEADER -->
+    <header class="flex items-center justify-between bg-pink-200 dark:bg-gray-900 shadow-md p-4 sticky top-0 z-40 select-none">
+      <h1 class="text-3xl font-pacifico text-pink-700 dark:text-pink-400 select-text">My Scrapbook Diary</h1>
+      <nav class="flex space-x-3 text-pink-700 dark:text-pink-400">
+        <button id="btnNewEntry" aria-label="Create new diary entry" class="hover:text-pink-900 dark:hover:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded px-2 py-1"><i class="fas fa-plus"></i> New Entry</button>
+        <button id="btnStickers" aria-label="Open stickers panel" class="hover:text-pink-900 dark:hover:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded px-2 py-1"><i class="fas fa-sticky-note"></i> Stickers</button>
+        <button id="btnMusic" aria-label="Open music panel" class="hover:text-pink-900 dark:hover:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded px-2 py-1"><i class="fas fa-music"></i> My Music</button>
+        <button id="btnMemoryBox" aria-label="Open memory box" class="hover:text-pink-900 dark:hover:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded px-2 py-1"><i class="fas fa-box"></i> Memory Box</button>
+        <button id="btnSettings" aria-label="Open settings" class="hover:text-pink-900 dark:hover:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded px-2 py-1"><i class="fas fa-cog"></i></button>
+      </nav>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex flex-1 overflow-hidden relative bg-pink-50 dark:bg-gray-900">
+
+      <!-- ENTRIES LIST & SEARCH -->
+      <section id="entriesSection" class="w-80 bg-pink-100 dark:bg-gray-800 border-r border-pink-300 dark:border-gray-700 flex flex-col">
+        <div class="p-4 sticky top-0 bg-pink-100 dark:bg-gray-800 z-20 border-b border-pink-300 dark:border-gray-700">
+          <input
+            id="searchInput"
+            type="search"
+            placeholder="Search by tag or date..."
+            class="w-full rounded-md border border-pink-300 dark:border-gray-700 p-2 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400"
+            aria-label="Search diary entries by tag or date"
+          />
+          <div class="mt-2 flex flex-wrap gap-1" id="moodFilterContainer" aria-label="Filter entries by mood">
+            <button data-mood="all" class="mood-filter-btn bg-pink-300 dark:bg-pink-700 text-pink-900 dark:text-pink-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400" aria-pressed="true">All</button>
+            <button data-mood="😊" class="mood-filter-btn bg-yellow-300 dark:bg-yellow-600 text-yellow-900 dark:text-yellow-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-pressed="false">😊</button>
+            <button data-mood="😢" class="mood-filter-btn bg-blue-300 dark:bg-blue-700 text-blue-900 dark:text-blue-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400" aria-pressed="false">😢</button>
+            <button data-mood="😠" class="mood-filter-btn bg-red-300 dark:bg-red-700 text-red-900 dark:text-red-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-400" aria-pressed="false">😠</button>
+            <button data-mood="💖" class="mood-filter-btn bg-pink-300 dark:bg-pink-700 text-pink-900 dark:text-pink-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400" aria-pressed="false">💖</button>
+          </div>
+        </div>
+        <ul id="entriesList" class="flex-1 overflow-y-auto divide-y divide-pink-300 dark:divide-gray-700" role="list" aria-label="Diary entries list">
+          <!-- Entries dynamically inserted here -->
+        </ul>
+      </section>
+
+      <!-- ENTRY VIEW & EDITOR -->
+      <section id="entrySection" class="flex-1 relative flex flex-col bg-white dark:bg-gray-900 overflow-hidden">
+        <div id="entryToolbar" class="flex flex-wrap items-center gap-2 p-3 border-b border-pink-300 dark:border-gray-700 bg-pink-50 dark:bg-gray-800 select-none">
+          <label for="entryDate" class="text-pink-700 dark:text-pink-300 font-semibold">Date:</label>
+          <input type="date" id="entryDate" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Select entry date" />
+          <label for="entryMood" class="text-pink-700 dark:text-pink-300 font-semibold ml-4">Mood:</label>
+          <select id="entryMood" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Select mood for entry">
+            <option value="">None</option>
+            <option value="😊">😊 Happy</option>
+            <option value="😢">😢 Sad</option>
+            <option value="😠">😠 Angry</option>
+            <option value="💖">💖 Love</option>
+          </select>
+          <label for="entryTags" class="text-pink-700 dark:text-pink-300 font-semibold ml-4">Tags:</label>
+          <input type="text" id="entryTags" placeholder="Comma separated" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400 w-40" aria-label="Add tags separated by commas" />
+          <button id="btnSaveEntry" class="ml-auto bg-pink-400 hover:bg-pink-500 text-white font-semibold py-1 px-4 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300" aria-label="Save diary entry"><i class="fas fa-save mr-1"></i> Save</button>
+          <button id="btnDeleteEntry" class="ml-2 bg-red-400 hover:bg-red-500 text-white font-semibold py-1 px-4 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-red-300" aria-label="Delete diary entry"><i class="fas fa-trash-alt"></i></button>
+        </div>
+
+        <div id="entryCustomization" class="flex flex-wrap items-center gap-3 p-3 border-b border-pink-300 dark:border-gray-700 bg-pink-50 dark:bg-gray-800 select-none">
+          <label for="bgColorPicker" class="text-pink-700 dark:text-pink-300 font-semibold">Background Color:</label>
+          <input type="color" id="bgColorPicker" aria-label="Pick background color for entry" class="w-10 h-8 rounded border border-pink-300 dark:border-gray-700 cursor-pointer" />
+          <label for="bgImageInput" class="text-pink-700 dark:text-pink-300 font-semibold ml-4 cursor-pointer" tabindex="0" role="button" aria-label="Upload background image for entry">
+            <i class="fas fa-image mr-1"></i> Background Image
+          </label>
+          <input type="file" id="bgImageInput" accept="image/*" class="hidden" />
+          <button id="clearBgImageBtn" class="ml-2 bg-pink-300 hover:bg-pink-400 text-pink-900 font-semibold py-1 px-3 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300" aria-label="Clear background image">Clear</button>
+          <label for="fontFamilySelect" class="text-pink-700 dark:text-pink-300 font-semibold ml-4">Font:</label>
+          <select id="fontFamilySelect" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Select font family for entry">
+            <option value="font-sans">Sans (Default)</option>
+            <option value="font-serif">Serif</option>
+            <option value="font-mono">Monospace</option>
+            <option value="font-indie">Indie Flower</option>
+            <option value="font-pacifico">Pacifico</option>
+            <option value="font-robotoslab">Roboto Slab</option>
+          </select>
+          <label for="fontSizeSelect" class="text-pink-700 dark:text-pink-300 font-semibold ml-4">Size:</label>
+          <select id="fontSizeSelect" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Select font size for entry">
+            <option value="text-base">Normal</option>
+            <option value="text-lg">Large</option>
+            <option value="text-xl">XL</option>
+            <option value="text-2xl">2XL</option>
+            <option value="text-3xl">3XL</option>
+          </select>
+          <label for="fontColorPicker" class="text-pink-700 dark:text-pink-300 font-semibold ml-4">Font Color:</label>
+          <input type="color" id="fontColorPicker" aria-label="Pick font color for entry" class="w-10 h-8 rounded border border-pink-300 dark:border-gray-700 cursor-pointer" />
+          <label for="textAlignSelect" class="text-pink-700 dark:text-pink-300 font-semibold ml-4">Align:</label>
+          <select id="textAlignSelect" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Select text alignment for entry">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+            <option value="justify">Justify</option>
+          </select>
+        </div>
+
+        <div id="entryContentWrapper" class="flex-1 relative overflow-auto p-4 bg-white dark:bg-gray-900" tabindex="0" aria-label="Diary entry content editor" role="textbox" contenteditable="true" spellcheck="true" aria-multiline="true" aria-live="polite" aria-atomic="true" style="outline:none;">
+          <!-- Editable diary content here -->
+        </div>
+
+        <!-- STICKERS ON CANVAS -->
+        <div id="stickersCanvas" class="absolute inset-0 pointer-events-none"></div>
+
+        <!-- PHOTO COLLAGE CONTROLS -->
+        <div id="photoCollageControls" class="absolute bottom-4 right-4 bg-pink-100 dark:bg-gray-800 rounded-md shadow-lg p-3 flex flex-col space-y-2 max-w-xs max-h-96 overflow-auto z-30 hidden" aria-label="Photo collage controls">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-pink-700 dark:text-pink-300">Photo Collage</h3>
+            <button id="closePhotoCollageBtn" aria-label="Close photo collage controls" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded"><i class="fas fa-times"></i></button>
+          </div>
+          <input type="file" id="photoUploadInput" accept="image/*" multiple aria-label="Upload photos for collage" class="rounded border border-pink-300 dark:border-gray-700 p-1 bg-pink-50 dark:bg-gray-900 text-pink-900 dark:text-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-400" />
+          <div id="photoFilterSelectWrapper" class="mt-2">
+            <label for="photoFilterSelect" class="text-pink-700 dark:text-pink-300 font-semibold">Filter:</label>
+            <select id="photoFilterSelect" class="rounded border border-pink-300 dark:border-gray-700 p-1 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400 w-full" aria-label="Select filter for photos">
+              <option value="none">None</option>
+              <option value="filter-vintage">Vintage</option>
+              <option value="filter-softglow">Soft Glow</option>
+              <option value="filter-warmfade">Warm Fade</option>
+            </select>
+          </div>
+          <div id="photoCollageCanvas" class="relative w-full h-48 bg-pink-50 dark:bg-gray-900 border border-pink-300 dark:border-gray-700 rounded-md overflow-hidden mt-2" aria-label="Photo collage canvas" tabindex="0"></div>
+        </div>
+
+        <!-- VOICE NOTES CONTROLS -->
+        <div id="voiceNotesControls" class="absolute bottom-4 left-4 bg-pink-100 dark:bg-gray-800 rounded-md shadow-lg p-3 flex flex-col space-y-2 max-w-xs z-30" aria-label="Voice notes controls">
+          <h3 class="font-semibold text-pink-700 dark:text-pink-300 flex items-center justify-between">
+            Voice Notes
+            <button id="closeVoiceNotesBtn" aria-label="Close voice notes controls" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded"><i class="fas fa-times"></i></button>
+          </h3>
+          <button id="startRecordingBtn" class="bg-pink-400 hover:bg-pink-500 text-white font-semibold py-1 px-4 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300 flex items-center justify-center" aria-label="Start recording voice note"><i class="fas fa-microphone mr-2"></i> Record</button>
+          <button id="stopRecordingBtn" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-1 px-4 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-red-300 flex items-center justify-center hidden" aria-label="Stop recording voice note"><i class="fas fa-stop mr-2"></i> Stop</button>
+          <ul id="voiceNotesList" class="max-h-40 overflow-y-auto divide-y divide-pink-300 dark:divide-gray-700" aria-label="List of voice notes attached to entry" role="list"></ul>
+        </div>
+
+        <!-- MUSIC PLAYER CONTROLS -->
+        <div id="musicPlayerControls" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-pink-100 dark:bg-gray-800 rounded-md shadow-lg p-3 flex items-center space-x-3 max-w-md w-full max-w-full z-30" aria-label="Music player controls" hidden>
+          <button id="musicPlayPauseBtn" aria-label="Play or pause music" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded text-2xl"><i class="fas fa-play"></i></button>
+          <div class="flex-1 flex flex-col overflow-hidden">
+            <div id="musicTitle" class="text-pink-700 dark:text-pink-300 font-semibold truncate" aria-live="polite" aria-atomic="true">No song</div>
+            <input type="range" id="musicProgress" min="0" max="100" value="0" step="1" aria-label="Music progress bar" class="w-full cursor-pointer" />
+          </div>
+          <div class="sound-bars flex space-x-1" aria-hidden="true">
+            <div></div><div></div><div></div><div></div><div></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- STICKERS PANEL -->
+      <aside id="stickersPanel" class="fixed top-16 right-0 w-80 h-[calc(100vh-4rem)] bg-pink-50 dark:bg-gray-900 border-l border-pink-300 dark:border-gray-700 shadow-lg flex flex-col z-50 transform translate-x-full transition-transform duration-300" aria-label="Stickers panel" aria-hidden="true" tabindex="-1">
+        <div class="flex items-center justify-between p-3 border-b border-pink-300 dark:border-gray-700">
+          <h2 class="text-xl font-semibold text-pink-700 dark:text-pink-300">Stickers</h2>
+          <button id="closeStickersPanel" aria-label="Close stickers panel" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-3 flex flex-col space-y-3 flex-1 overflow-y-auto">
+          <div>
+            <label for="uploadStickerInput" class="cursor-pointer inline-flex items-center space-x-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded">
+              <i class="fas fa-upload"></i>
+              <span>Upload Sticker (PNG)</span>
+            </label>
+            <input type="file" id="uploadStickerInput" accept="image/png" class="hidden" aria-label="Upload transparent PNG sticker" />
+          </div>
+          <input type="text" id="stickerSearchInput" placeholder="Search stickers..." class="w-full rounded border border-pink-300 dark:border-gray-700 p-2 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Search stickers" />
+          <div id="stickerTagsFilter" class="flex flex-wrap gap-1 mt-2" aria-label="Filter stickers by tags">
+            <button data-tag="all" class="sticker-tag-btn bg-pink-300 dark:bg-pink-700 text-pink-900 dark:text-pink-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400" aria-pressed="true">All</button>
+            <button data-tag="love" class="sticker-tag-btn bg-pink-300 dark:bg-pink-700 text-pink-900 dark:text-pink-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400" aria-pressed="false">Love</button>
+            <button data-tag="mood" class="sticker-tag-btn bg-yellow-300 dark:bg-yellow-700 text-yellow-900 dark:text-yellow-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-yellow-400" aria-pressed="false">Mood</button>
+            <button data-tag="aesthetic" class="sticker-tag-btn bg-purple-300 dark:bg-purple-700 text-purple-900 dark:text-purple-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-purple-400" aria-pressed="false">Aesthetic</button>
+            <button data-tag="weather" class="sticker-tag-btn bg-blue-300 dark:bg-blue-700 text-blue-900 dark:text-blue-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-400" aria-pressed="false">Weather</button>
+            <button data-tag="scrapbook" class="sticker-tag-btn bg-pink-300 dark:bg-pink-700 text-pink-900 dark:text-pink-200 rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-400" aria-pressed="false">Scrapbook</button>
+            <button data-tag="favorite" class="sticker-tag-btn bg-pink-400 dark:bg-pink-600 text-white rounded px-2 py-1 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-pink-500" aria-pressed="false">★ Favorite</button>
+          </div>
+          <ul id="stickersList" class="grid grid-cols-3 gap-3 overflow-y-auto flex-1" role="list" aria-label="Sticker library">
+            <!-- Stickers dynamically inserted here -->
+          </ul>
+        </div>
+      </aside>
+
+      <!-- MUSIC PANEL -->
+      <aside id="musicPanel" class="fixed top-16 right-0 w-80 h-[calc(100vh-4rem)] bg-pink-50 dark:bg-gray-900 border-l border-pink-300 dark:border-gray-700 shadow-lg flex flex-col z-50 transform translate-x-full transition-transform duration-300" aria-label="Music panel" aria-hidden="true" tabindex="-1">
+        <div class="flex items-center justify-between p-3 border-b border-pink-300 dark:border-gray-700">
+          <h2 class="text-xl font-semibold text-pink-700 dark:text-pink-300">My Music</h2>
+          <button id="closeMusicPanel" aria-label="Close music panel" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-3 flex flex-col space-y-3 flex-1 overflow-y-auto">
+          <div>
+            <label for="uploadMusicInput" class="cursor-pointer inline-flex items-center space-x-2 text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded">
+              <i class="fas fa-upload"></i>
+              <span>Upload Music (MP3)</span>
+            </label>
+            <input type="file" id="uploadMusicInput" accept="audio/mp3,audio/mpeg" class="hidden" aria-label="Upload MP3 music file" />
+          </div>
+          <ul id="musicList" class="divide-y divide-pink-300 dark:divide-gray-700 overflow-y-auto flex-1" role="list" aria-label="Music library">
+            <!-- Music tracks dynamically inserted here -->
+          </ul>
+        </div>
+      </aside>
+
+      <!-- MEMORY BOX PANEL -->
+      <aside id="memoryBoxPanel" class="fixed top-16 right-0 w-80 h-[calc(100vh-4rem)] bg-pink-50 dark:bg-gray-900 border-l border-pink-300 dark:border-gray-700 shadow-lg flex flex-col z-50 transform translate-x-full transition-transform duration-300" aria-label="Memory box panel" aria-hidden="true" tabindex="-1">
+        <div class="flex items-center justify-between p-3 border-b border-pink-300 dark:border-gray-700">
+          <h2 class="text-xl font-semibold text-pink-700 dark:text-pink-300">Memory Box</h2>
+          <button id="closeMemoryBoxPanel" aria-label="Close memory box panel" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-3 flex flex-col space-y-3 flex-1 overflow-y-auto">
+          <h3 class="font-semibold text-pink-700 dark:text-pink-300">Treasured Memories</h3>
+          <ul id="memoryBoxList" class="divide-y divide-pink-300 dark:divide-gray-700 overflow-y-auto flex-1" role="list" aria-label="Memory box items">
+            <!-- Memory items dynamically inserted here -->
+          </ul>
+        </div>
+      </aside>
+
+      <!-- SETTINGS PANEL -->
+      <aside id="settingsPanel" class="fixed top-16 right-0 w-80 h-[calc(100vh-4rem)] bg-pink-50 dark:bg-gray-900 border-l border-pink-300 dark:border-gray-700 shadow-lg flex flex-col z-50 transform translate-x-full transition-transform duration-300" aria-label="Settings panel" aria-hidden="true" tabindex="-1">
+        <div class="flex items-center justify-between p-3 border-b border-pink-300 dark:border-gray-700">
+          <h2 class="text-xl font-semibold text-pink-700 dark:text-pink-300">Settings</h2>
+          <button id="closeSettingsPanel" aria-label="Close settings panel" class="text-pink-700 dark:text-pink-300 hover:text-pink-900 dark:hover:text-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-400 rounded"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="p-3 flex flex-col space-y-4 flex-1 overflow-y-auto">
+          <section aria-labelledby="themeSectionTitle">
+            <h3 id="themeSectionTitle" class="font-semibold text-pink-700 dark:text-pink-300 mb-2">App Theme</h3>
+            <select id="themeSelect" class="w-full rounded border border-pink-300 dark:border-gray-700 p-2 text-pink-900 dark:text-pink-200 bg-pink-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-400" aria-label="Select app theme">
+              <option value="soft-pink">Soft Pink</option>
+              <option value="midnight-galaxy">Midnight Galaxy</option>
+              <option value="vintage-paper">Vintage Paper</option>
+              <option value="muted-pastels">Muted Pastels</option>
+            </select>
+          </section>
+          <section aria-labelledby="securitySectionTitle">
+            <h3 id="securitySectionTitle" class="font-semibold text-pink-700 dark:text-pink-300 mb-2">Security</h3>
+            <button id="btnSetPinSettings" class="bg-pink-400 hover:bg-pink-500 text-white font-semibold py-2 px-4 rounded-md shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300" aria-label="Set or change app PIN">Set / Change PIN</button>
+          </section>
+          <section aria-labelledby="aboutSectionTitle">
+            <h3 id="aboutSectionTitle" class="font-semibold text-pink-700 dark:text-pink-300 mb-2">About</h3>
+            <p class="text-pink-700 dark:text-pink-300 text-sm">This is a personal offline scrapbook-style diary app. All your data is stored locally on your device. Enjoy documenting your memories creatively and securely.</p>
+          </section>
+        </div>
+      </aside>
+
+    </main>
+
+  </div>
+
+  <script>
+    // Fonts mapping for select
+    const fontMap = {
+      "font-sans": "font-sans",
+      "font-serif": "font-serif",
+      "font-mono": "font-mono",
+      "font-indie": "'Indie Flower', cursive",
+      "font-pacifico": "'Pacifico', cursive",
+      "font-robotoslab": "'Roboto Slab', serif"
+    };
+
+    // THEMES CSS variables
+    const themes = {
+      "soft-pink": {
+        "--bg-gradient-from": "#fce7f3",
+        "--bg-gradient-to": "#fbcfe8",
+        "--text-color": "#831843",
+        "--primary-color": "#db2777",
+        "--secondary-color": "#f9a8d4",
+        "--border-color": "#f9a8d4",
+        "--shadow-color": "rgba(219, 39, 119, 0.3)"
+      },
+      "midnight-galaxy": {
+        "--bg-gradient-from": "#0f172a",
+        "--bg-gradient-to": "#1e293b",
+        "--text-color": "#e0e7ff",
+        "--primary-color": "#6366f1",
+        "--secondary-color": "#818cf8",
+        "--border-color": "#4f46e5",
+        "--shadow-color": "rgba(99, 102, 241, 0.3)"
+      },
+      "vintage-paper": {
+        "--bg-gradient-from": "#fef3c7",
+        "--bg-gradient-to": "#fde68a",
+        "--text-color": "#78350f",
+        "--primary-color": "#b45309",
+        "--secondary-color": "#fbbf24",
+        "--border-color": "#fbbf24",
+        "--shadow-color": "rgba(180, 83, 9, 0.3)"
+      },
+      "muted-pastels": {
+        "--bg-gradient-from": "#e0e7ff",
+        "--bg-gradient-to": "#c7d2fe",
+        "--text-color": "#4338ca",
+        "--primary-color": "#6366f1",
+        "--secondary-color": "#a5b4fc",
+        "--border-color": "#a5b4fc",
+        "--shadow-color": "rgba(99, 102, 241, 0.3)"
+      }
+    };
+
+    // STORAGE KEYS
+    const STORAGE_KEYS = {
+      ENTRIES: "scrapbook_diary_entries",
+      STICKERS: "scrapbook_diary_stickers",
+      MUSIC: "scrapbook_diary_music",
+      MEMORY_BOX: "scrapbook_diary_memory_box",
+      PIN: "scrapbook_diary_pin",
+      THEME: "scrapbook_diary_theme"
+    };
+
+    // DOM Elements
+    const appLockModal = document.getElementById("appLockModal");
+    const pinInput = document.getElementById("pinInput");
+    const pinSubmitBtn = document.getElementById("pinSubmitBtn");
+    const pinError = document.getElementById("pinError");
+    const setPinBtn = document.getElementById("setPinBtn");
+
+    const setPinModal = document.getElementById("setPinModal");
+    const newPinInput = document.getElementById("newPinInput");
+    const confirmPinInput = document.getElementById("confirmPinInput");
+    const savePinBtn = document.getElementById("savePinBtn");
+    const cancelSetPinBtn = document.getElementById("cancelSetPinBtn");
+    const setPinError = document.getElementById("setPinError");
+
+    const btnNewEntry = document.getElementById("btnNewEntry");
+    const btnStickers = document.getElementById("btnStickers");
+    const btnMusic = document.getElementById("btnMusic");
+    const btnMemoryBox = document.getElementById("btnMemoryBox");
+    const btnSettings = document.getElementById("btnSettings");
+
+    const stickersPanel = document.getElementById("stickersPanel");
+    const closeStickersPanel = document.getElementById("closeStickersPanel");
+    const uploadStickerInput = document.getElementById("uploadStickerInput");
+    const stickersList = document.getElementById("stickersList");
+    const stickerSearchInput = document.getElementById("stickerSearchInput");
+    const stickerTagsFilter = document.getElementById("stickerTagsFilter");
+
+    const musicPanel = document.getElementById("musicPanel");
+    const closeMusicPanel = document.getElementById("closeMusicPanel");
+    const uploadMusicInput = document.getElementById("uploadMusicInput");
+    const musicList = document.getElementById("musicList");
+
+    const memoryBoxPanel = document.getElementById("memoryBoxPanel");
+    const closeMemoryBoxPanel = document.getElementById("closeMemoryBoxPanel");
+    const memoryBoxList = document.getElementById("memoryBoxList");
+
+    const settingsPanel = document.getElementById("settingsPanel");
+    const closeSettingsPanel = document.getElementById("closeSettingsPanel");
+    const btnSetPinSettings = document.getElementById("btnSetPinSettings");
+    const themeSelect = document.getElementById("themeSelect");
+
+    const entriesList = document.getElementById("entriesList");
+    const searchInput = document.getElementById("searchInput");
+    const moodFilterContainer = document.getElementById("moodFilterContainer");
+
+    const entryDate = document.getElementById("entryDate");
+    const entryMood = document.getElementById("entryMood");
+    const entryTags = document.getElementById("entryTags");
+    const btnSaveEntry = document.getElementById("btnSaveEntry");
+    const btnDeleteEntry = document.getElementById("btnDeleteEntry");
+
+    const bgColorPicker = document.getElementById("bgColorPicker");
+    const bgImageInput = document.getElementById("bgImageInput");
+    const clearBgImageBtn = document.getElementById("clearBgImageBtn");
+
+    const fontFamilySelect = document.getElementById("fontFamilySelect");
+    const fontSizeSelect = document.getElementById("fontSizeSelect");
+    const fontColorPicker = document.getElementById("fontColorPicker");
+    const textAlignSelect = document.getElementById("textAlignSelect");
+
+    const entryContentWrapper = document.getElementById("entryContentWrapper");
+    const stickersCanvas = document.getElementById("stickersCanvas");
+
+    const photoCollageControls = document.getElementById("photoCollageControls");
+    const closePhotoCollageBtn = document.getElementById("closePhotoCollageBtn");
+    const photoUploadInput = document.getElementById("photoUploadInput");
+    const photoFilterSelect = document.getElementById("photoFilterSelect");
+    const photoCollageCanvas = document.getElementById("photoCollageCanvas");
+
+    const voiceNotesControls = document.getElementById("voiceNotesControls");
+    const closeVoiceNotesBtn = document.getElementById("closeVoiceNotesBtn");
+    const startRecordingBtn = document.getElementById("startRecordingBtn");
+    const stopRecordingBtn = document.getElementById("stopRecordingBtn");
+    const voiceNotesList = document.getElementById("voiceNotesList");
+
+    const musicPlayerControls = document.getElementById("musicPlayerControls");
+    const musicPlayPauseBtn = document.getElementById("musicPlayPauseBtn");
+    const musicTitle = document.getElementById("musicTitle");
+    const musicProgress = document.getElementById("musicProgress");
+
+    // State
+    let entries = [];
+    let stickers = [];
+    let musicLibrary = [];
+    let memoryBox = [];
+    let currentEntryId = null;
+    let currentTheme = "soft-pink";
+    let isPlayingMusic = false;
+    let currentAudio = null;
+    let currentAudioId = null;
+    let audioUpdateInterval = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let isRecording = false;
+    let dragData = null; // For stickers drag-drop on canvas
+    let selectedStickerId = null;
+    let selectedPhotoId = null;
+    let photosOnCanvas = [];
+    let photoIdCounter = 0;
+
+    // UTILITIES
+    function saveToStorage(key, data) {
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+    function loadFromStorage(key) {
+      const data = localStorage.getItem(key);
+      if (!data) return null;
+      try {
+        return JSON.parse(data);
+      } catch {
+        return null;
+      }
+    }
+    function formatDate(date) {
+      const d = new Date(date);
+      return d.toISOString().split("T")[0];
+    }
+    function generateId() {
+      return "id-" + Math.random().toString(36).substr(2, 9);
+    }
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, function(m) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[m];
+      });
+    }
+
+    // THEME MANAGEMENT
+    function applyTheme(themeName) {
+      currentTheme = themeName;
+      const theme = themes[themeName];
+      if (!theme) return;
+      document.documentElement.style.setProperty("--bg-gradient-from", theme["--bg-gradient-from"]);
+      document.documentElement.style.setProperty("--bg-gradient-to", theme["--bg-gradient-to"]);
+      document.documentElement.style.setProperty("--text-color", theme["--text-color"]);
+      document.documentElement.style.setProperty("--primary-color", theme["--primary-color"]);
+      document.documentElement.style.setProperty("--secondary-color", theme["--secondary-color"]);
+      document.documentElement.style.setProperty("--border-color", theme["--border-color"]);
+      document.documentElement.style.setProperty("--shadow-color", theme["--shadow-color"]);
+
+      // Update body background gradient and text colors
+      document.body.style.background = `linear-gradient(to bottom, ${theme["--bg-gradient-from"]}, ${theme["--bg-gradient-to"]})`;
+      document.body.style.color = theme["--text-color"];
+
+      // Update header and nav colors
+      const header = document.querySelector("header");
+      if (header) {
+        header.style.backgroundColor = theme["--bg-gradient-from"];
+        header.style.color = theme["--text-color"];
+      }
+    }
+
+    // PIN LOCK MANAGEMENT
+    function checkPin(pin) {
+      const storedPin = localStorage.getItem(STORAGE_KEYS.PIN);
+      if (!storedPin) return true; // No PIN set, allow access
+      return storedPin === pin;
+    }
+    function showAppLock() {
+      appLockModal.classList.remove("hidden");
+      appLockModal.setAttribute("aria-hidden", "false");
+      pinInput.value = "";
+      pinError.classList.add("hidden");
+      pinInput.focus();
+    }
+    function hideAppLock() {
+      appLockModal.classList.add("hidden");
+      appLockModal.setAttribute("aria-hidden", "true");
+    }
+    function showSetPinModal() {
+      setPinModal.classList.remove("hidden");
+      setPinModal.setAttribute("aria-hidden", "false");
+      newPinInput.value = "";
+      confirmPinInput.value = "";
+      setPinError.classList.add("hidden");
+      newPinInput.focus();
+    }
+    function hideSetPinModal() {
+      setPinModal.classList.add("hidden");
+      setPinModal.setAttribute("aria-hidden", "true");
+    }
+
+    // ENTRIES MANAGEMENT
+    function loadEntries() {
+      const loaded = loadFromStorage(STORAGE_KEYS.ENTRIES);
+      entries = Array.isArray(loaded) ? loaded : [];
+    }
+    function saveEntries() {
+      saveToStorage(STORAGE_KEYS.ENTRIES, entries);
+    }
+    function renderEntriesList(filter = "") {
+      const moodFilter = [...moodFilterContainer.querySelectorAll(".mood-filter-btn[aria-pressed='true']")].map(b => b.dataset.mood)[0] || "all";
+      const searchTerm = filter.toLowerCase();
+      entriesList.innerHTML = "";
+      let filteredEntries = entries;
+
+      if (moodFilter !== "all") {
+        filteredEntries = filteredEntries.filter(e => e.mood === moodFilter);
+      }
+      if (searchTerm) {
+        filteredEntries = filteredEntries.filter(e => {
+          const tags = e.tags ? e.tags.join(",").toLowerCase() : "";
+          const dateStr = e.date.toLowerCase();
+          return tags.includes(searchTerm) || dateStr.includes(searchTerm);
+        });
+      }
+      // Sort descending by date
+      filteredEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+      if (filteredEntries.length === 0) {
+        const li = document.createElement("li");
+        li.className = "p-4 text-center text-pink-500 dark:text-pink-400 font-semibold";
+        li.textContent = "No entries found.";
+        entriesList.appendChild(li);
+        return;
+      }
+
+      filteredEntries.forEach(entry => {
+        const li = document.createElement("li");
+        li.className = "p-3 cursor-pointer hover:bg-pink-200 dark:hover:bg-gray-700 flex flex-col";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", `Open diary entry for ${entry.date}`);
+        li.dataset.id = entry.id;
+
+        const dateSpan = document.createElement("span");
+        dateSpan.className = "font-semibold text-pink-700 dark:text-pink-300";
+        dateSpan.textContent = entry.date;
+
+        const moodSpan = document.createElement("span");
+        moodSpan.className = "ml-2";
+        moodSpan.textContent = entry.mood || "";
+
+        const tagsSpan = document.createElement("span");
+        tagsSpan.className = "text-xs text-pink-600 dark:text-pink-400 mt-1 truncate";
+        tagsSpan.textContent = entry.tags ? entry.tags.join(", ") : "";
+
+        li.appendChild(dateSpan);
+        li.appendChild(moodSpan);
+        li.appendChild(tagsSpan);
+
+        li.addEventListener("click", () => {
+          loadEntry(entry.id);
+        });
+        li.addEventListener("keydown", e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            loadEntry(entry.id);
+          }
+        });
+
+        entriesList.appendChild(li);
+      });
+    }
+    function loadEntry(id) {
+      const entry = entries.find(e => e.id === id);
+      if (!entry) return;
+      currentEntryId = id;
+      entryDate.value = entry.date;
+      entryMood.value = entry.mood || "";
+      entryTags.value = entry.tags ? entry.tags.join(", ") : "";
+      bgColorPicker.value = entry.bgColor || "#ffffff";
+      fontColorPicker.value = entry.fontColor || "#000000";
+      fontFamilySelect.value = entry.fontFamily || "font-sans";
+      fontSizeSelect.value = entry.fontSize || "text-base";
+      textAlignSelect.value = entry.textAlign || "left";
+      if (entry.bgImage) {
+        entryContentWrapper.style.backgroundImage = `url(${entry.bgImage})`;
+        entryContentWrapper.style.backgroundSize = "cover";
+        entryContentWrapper.style.backgroundPosition = "center";
+      } else {
+        entryContentWrapper.style.backgroundImage = "";
+      }
+      entryContentWrapper.style.backgroundColor = entry.bgColor || "#ffffff";
+      entryContentWrapper.style.color = entry.fontColor || "#000000";
+      entryContentWrapper.style.fontFamily = fontMap[entry.fontFamily] || "inherit";
+      entryContentWrapper.className = `flex-1 relative overflow-auto p-4 bg-white dark:bg-gray-900 ${entry.fontSize || "text-base"}`;
+      entryContentWrapper.style.textAlign = entry.textAlign || "left";
+      entryContentWrapper.innerHTML = entry.content || "";
+
+      // Clear stickers canvas and add stickers for this entry
+      clearStickersCanvas();
+      if (entry.stickers && entry.stickers.length > 0) {
+        entry.stickers.forEach(sticker => {
+          addStickerToCanvas(sticker, false);
+        });
+      }
+
+      // Load photos on canvas
+      photosOnCanvas = entry.photos ? JSON.parse(JSON.stringify(entry.photos)) : [];
+      renderPhotoCollageCanvas();
+
+      // Load voice notes
+      renderVoiceNotes(entry.voiceNotes || []);
+
+      // Load attached music
+      if (entry.musicId) {
+        loadMusicById(entry.musicId);
+      } else {
+        stopMusic();
+      }
+
+      // Show photo collage controls and voice notes controls
+      photoCollageControls.classList.remove("hidden");
+      voiceNotesControls.classList.remove("hidden");
+      musicPlayerControls.hidden = !entry.musicId;
+
+      // Focus content wrapper for editing
+      setTimeout(() => {
+        entryContentWrapper.focus();
+      }, 100);
+    }
+    function clearEntryForm() {
+      currentEntryId = null;
+      entryDate.value = formatDate(new Date());
+      entryMood.value = "";
+      entryTags.value = "";
+      bgColorPicker.value = "#ffffff";
+      fontColorPicker.value = "#000000";
+      fontFamilySelect.value = "font-sans";
+      fontSizeSelect.value = "text-base";
+      textAlignSelect.value = "left";
+      entryContentWrapper.style.backgroundImage = "";
+      entryContentWrapper.style.backgroundColor = "#ffffff";
+      entryContentWrapper.style.color = "#000000";
+      entryContentWrapper.style.fontFamily = "inherit";
+      entryContentWrapper.className = "flex-1 relative overflow-auto p-4 bg-white dark:bg-gray-900 text-base";
+      entryContentWrapper.style.textAlign = "left";
+      entryContentWrapper.innerHTML = "";
+
+      clearStickersCanvas();
+      photosOnCanvas = [];
+      renderPhotoCollageCanvas();
+      renderVoiceNotes([]);
+      stopMusic();
+      musicPlayerControls.hidden = true;
+
+      photoCollageControls.classList.add("hidden");
+      voiceNotesControls.classList.add("hidden");
+    }
+    function saveCurrentEntry() {
+      const dateVal = entryDate.value;
+      if (!dateVal) {
+        alert("Please select a date for the entry.");
+        return;
+      }
+      const content = entryContentWrapper.innerHTML;
+      const mood = entryMood.value;
+      const tagsRaw = entryTags.value.trim();
+      const tags = tagsRaw ? tagsRaw.split(",").map(t => t.trim().toLowerCase()).filter(t => t.length > 0) : [];
+      const bgColor = bgColorPicker.value;
+      const fontColor = fontColorPicker.value;
+      const fontFamily = fontFamilySelect.value;
+      const fontSize = fontSizeSelect.value;
+      const textAlign = textAlignSelect.value;
+      const bgImage = entryContentWrapper.style.backgroundImage ? entryContentWrapper.style.backgroundImage.slice(5, -2) : null;
+
+      // Stickers on canvas
+      const stickersOnCanvas = [];
+      stickersCanvas.querySelectorAll(".draggable").forEach(el => {
+        const id = el.dataset.id;
+        const stickerData = stickers.find(s => s.id === id);
+        if (!stickerData) return;
+        stickersOnCanvas.push({
+          id,
+          x: parseFloat(el.style.left),
+          y: parseFloat(el.style.top),
+          width: parseFloat(el.style.width),
+          height: parseFloat(el.style.height),
+          rotation: parseFloat(el.dataset.rotation) || 0,
+          locked: el.dataset.locked === "true"
+        });
+      });
+
+      // Photos on canvas
+      const photos = photosOnCanvas;
+
+      // Voice notes
+      const voiceNotes = currentVoiceNotes;
+
+      // Attached music
+      const musicId = currentAudioId;
+
+      if (currentEntryId) {
+        // Update existing
+        const idx = entries.findIndex(e => e.id === currentEntryId);
+        if (idx >= 0) {
+          entries[idx] = {
+            ...entries[idx],
+            date: dateVal,
+            content,
+            mood,
+            tags,
+            bgColor,
+            fontColor,
+            fontFamily,
+            fontSize,
+            textAlign,
+            bgImage,
+            stickers: stickersOnCanvas,
+            photos,
+            voiceNotes,
+            musicId
+          };
+        }
+      } else {
+        // New entry
+        const newEntry = {
+          id: generateId(),
+          date: dateVal,
+          content,
+          mood,
+          tags,
+          bgColor,
+          fontColor,
+          fontFamily,
+          fontSize,
+          textAlign,
+          bgImage,
+          stickers: stickersOnCanvas,
+          photos,
+          voiceNotes,
+          musicId
+        };
+        entries.push(newEntry);
+        currentEntryId = newEntry.id;
+      }
+      saveEntries();
+      renderEntriesList(searchInput.value);
+      alert("Entry saved!");
+    }
+    function deleteCurrentEntry() {
+      if (!currentEntryId) return;
+      if (!confirm("Are you sure you want to delete this entry? This action cannot be undone.")) return;
+      entries = entries.filter(e => e.id !== currentEntryId);
+      saveEntries();
+      clearEntryForm();
+      renderEntriesList(searchInput.value);
+    }
+
+    // STICKERS MANAGEMENT
+    function loadStickers() {
+      const loaded = loadFromStorage(STORAGE_KEYS.STICKERS);
+      stickers = Array.isArray(loaded) ? loaded : [];
+    }
+    function saveStickers() {
+      saveToStorage(STORAGE_KEYS.STICKERS, stickers);
+    }
+    function renderStickersList() {
+      const searchTerm = stickerSearchInput.value.toLowerCase();
+      const activeTagBtn = stickerTagsFilter.querySelector(".sticker-tag-btn[aria-pressed='true']");
+      const activeTag = activeTagBtn ? activeTagBtn.dataset.tag : "all";
+
+      stickersList.innerHTML = "";
+      let filteredStickers = stickers;
+
+      if (activeTag !== "all") {
+        if (activeTag === "favorite") {
+          filteredStickers = filteredStickers.filter(s => s.favorite);
+        } else {
+          filteredStickers = filteredStickers.filter(s => s.tags.includes(activeTag));
+        }
+      }
+      if (searchTerm) {
+        filteredStickers = filteredStickers.filter(s => s.name.toLowerCase().includes(searchTerm));
+      }
+
+      if (filteredStickers.length === 0) {
+        const li = document.createElement("li");
+        li.className = "col-span-3 p-4 text-center text-pink-500 dark:text-pink-400 font-semibold";
+        li.textContent = "No stickers found.";
+        stickersList.appendChild(li);
+        return;
+      }
+
+      filteredStickers.forEach(sticker => {
+        const li = document.createElement("li");
+        li.className = "relative cursor-pointer rounded-md border border-pink-300 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-400";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", `Add sticker ${sticker.name} to entry`);
+        li.dataset.id = sticker.id;
+
+        const img = document.createElement("img");
+        img.src = sticker.dataUrl;
+        img.alt = `Sticker image named ${sticker.name}`;
+        img.className = "w-full h-auto object-contain rounded";
+
+        // Favorite star
+        const favBtn = document.createElement("button");
+        favBtn.className = "absolute top-1 right-1 text-pink-500 hover:text-pink-700 focus:outline-none";
+        favBtn.title = sticker.favorite ? "Unfavorite" : "Favorite";
+        favBtn.innerHTML = sticker.favorite ? '<i class="fas fa-star"></i>' : '<i class="far fa-star"></i>';
+        favBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          sticker.favorite = !sticker.favorite;
+          saveStickers();
+          renderStickersList();
+        });
+        favBtn.setAttribute("aria-label", sticker.favorite ? "Unfavorite sticker" : "Favorite sticker");
+
+        // Delete button
+        const delBtn = document.createElement("button");
+        delBtn.className = "absolute bottom-1 right-1 text-red-500 hover:text-red-700 focus:outline-none";
+        delBtn.title = "Delete sticker";
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        delBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (confirm(`Delete sticker "${sticker.name}"?`)) {
+            stickers = stickers.filter(s => s.id !== sticker.id);
+            saveStickers();
+            renderStickersList();
+          }
+        });
+        delBtn.setAttribute("aria-label", "Delete sticker");
+
+        li.appendChild(img);
+        li.appendChild(favBtn);
+        li.appendChild(delBtn);
+
+        li.addEventListener("click", () => {
+          addStickerToCanvas(sticker, true);
+        });
+        li.addEventListener("keydown", e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            addStickerToCanvas(sticker, true);
+          }
+        });
+
+        stickersList.appendChild(li);
+      });
+    }
+    function addStickerToCanvas(sticker, focus = false) {
+      const stickerEl = document.createElement("img");
+      stickerEl.src = sticker.dataUrl;
+      stickerEl.alt = `Sticker image named ${sticker.name}`;
+      stickerEl.className = "draggable rounded-md shadow-md";
+      stickerEl.style.width = "100px";
+      stickerEl.style.height = "auto";
+      stickerEl.style.left = "50px";
+      stickerEl.style.top = "50px";
+      stickerEl.style.position = "absolute";
+      stickerEl.dataset.id = sticker.id;
+      stickerEl.dataset.rotation = "0";
+      stickerEl.dataset.locked = "false";
+      stickerEl.tabIndex = 0;
+      stickerEl.setAttribute("role", "img");
+      stickerEl.setAttribute("aria-label", `Sticker ${sticker.name} on canvas. Use keyboard to move, resize, rotate, or delete.`);
+
+      // Add resize handle
+      const resizeHandle = document.createElement("div");
+      resizeHandle.className = "resize-handle";
+      resizeHandle.style.right = "-7px";
+      resizeHandle.style.bottom = "-7px";
+      resizeHandle.title = "Resize sticker";
+      resizeHandle.tabIndex = 0;
+      resizeHandle.setAttribute("aria-label", "Resize sticker handle");
+      stickerEl.appendChild(resizeHandle);
+
+      // Add rotate handle
+      const rotateHandle = document.createElement("div");
+      rotateHandle.className = "rotate-handle";
+      rotateHandle.style.top = "-20px";
+      rotateHandle.style.left = "50%";
+      rotateHandle.style.transform = "translateX(-50%)";
+      rotateHandle.title = "Rotate sticker";
+      rotateHandle.tabIndex = 0;
+      rotateHandle.setAttribute("aria-label", "Rotate sticker handle");
+      stickerEl.appendChild(rotateHandle);
+
+      // Controls container for lock/delete/front/back
+      const controlsContainer = document.createElement("div");
+      controlsContainer.className = "absolute top-1 left-1 flex space-x-1 z-30";
+      controlsContainer.style.pointerEvents = "auto";
+
+      // Lock button
+      const lockBtn = document.createElement("button");
+      lockBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none";
+      lockBtn.title = "Lock/Unlock sticker";
+      lockBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+      lockBtn.setAttribute("aria-label", "Lock or unlock sticker");
+      lockBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        const locked = stickerEl.dataset.locked === "true";
+        stickerEl.dataset.locked = (!locked).toString();
+        if (!locked) {
+          lockBtn.innerHTML = '<i class="fas fa-lock"></i>';
+          stickerEl.style.cursor = "not-allowed";
+          stickerEl.style.boxShadow = "0 0 10px rgba(255,0,0,0.5)";
+        } else {
+          lockBtn.innerHTML = '<i class="fas fa-lock-open"></i>';
+          stickerEl.style.cursor = "grab";
+          stickerEl.style.boxShadow = "";
+        }
+      });
+      controlsContainer.appendChild(lockBtn);
+
+      // Bring to front button
+      const frontBtn = document.createElement("button");
+      frontBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none";
+      frontBtn.title = "Bring sticker to front";
+      frontBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+      frontBtn.setAttribute("aria-label", "Bring sticker to front");
+      frontBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        stickersCanvas.appendChild(stickerEl);
+      });
+      controlsContainer.appendChild(frontBtn);
+
+      // Send to back button
+      const backBtn = document.createElement("button");
+      backBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none";
+      backBtn.title = "Send sticker to back";
+      backBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+      backBtn.setAttribute("aria-label", "Send sticker to back");
+      backBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        stickersCanvas.insertBefore(stickerEl, stickersCanvas.firstChild);
+      });
+      controlsContainer.appendChild(backBtn);
+
+      // Delete button
+      const delBtn = document.createElement("button");
+      delBtn.className = "text-red-600 hover:text-red-800 focus:outline-none";
+      delBtn.title = "Delete sticker";
+      delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+      delBtn.setAttribute("aria-label", "Delete sticker");
+      delBtn.addEventListener("click", e => {
+        e.stopPropagation();
+        if (confirm("Delete this sticker from the page?")) {
+          stickersCanvas.removeChild(stickerEl);
+        }
+      });
+      controlsContainer.appendChild(delBtn);
+
+      stickerEl.appendChild(controlsContainer);
+
+      stickersCanvas.appendChild(stickerEl);
+      stickersCanvas.style.pointerEvents = "auto";
+
+      // Initialize drag, resize, rotate handlers
+      initStickerInteractions(stickerEl);
+
+      if (focus) {
+        stickerEl.focus();
+      }
+    }
+    function clearStickersCanvas() {
+      stickersCanvas.innerHTML = "";
+      stickersCanvas.style.pointerEvents = "none";
+    }
+    function initStickerInteractions(stickerEl) {
+      let isDragging = false;
+      let dragStartX, dragStartY, origX, origY;
+      let isResizing = false;
+      let resizeStartX, resizeStartY, origWidth, origHeight;
+      let isRotating = false;
+      let rotateStartX, rotateStartY, origRotation;
+
+      const resizeHandle = stickerEl.querySelector(".resize-handle");
+      const rotateHandle = stickerEl.querySelector(".rotate-handle");
+
+      // Dragging sticker
+      stickerEl.addEventListener("pointerdown", e => {
+        if (e.target === resizeHandle || e.target === rotateHandle) return;
+        if (stickerEl.dataset.locked === "true") return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        origX = parseFloat(stickerEl.style.left);
+        origY = parseFloat(stickerEl.style.top);
+        stickerEl.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      stickerEl.addEventListener("pointermove", e => {
+        if (!isDragging) return;
+        const dx = e.clientX - dragStartX;
+        const dy = e.clientY - dragStartY;
+        stickerEl.style.left = `${origX + dx}px`;
+        stickerEl.style.top = `${origY + dy}px`;
+      });
+      stickerEl.addEventListener("pointerup", e => {
+        if (isDragging) {
+          isDragging = false;
+          stickerEl.releasePointerCapture(e.pointerId);
+        }
+      });
+      stickerEl.addEventListener("pointercancel", e => {
+        if (isDragging) {
+          isDragging = false;
+          stickerEl.releasePointerCapture(e.pointerId);
+        }
+      });
+
+      // Resizing sticker
+      resizeHandle.addEventListener("pointerdown", e => {
+        if (stickerEl.dataset.locked === "true") return;
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+        origWidth = stickerEl.offsetWidth;
+        origHeight = stickerEl.offsetHeight;
+        resizeHandle.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      resizeHandle.addEventListener("pointermove", e => {
+        if (!isResizing) return;
+        const dx = e.clientX - resizeStartX;
+        const dy = e.clientY - resizeStartY;
+        let newWidth = origWidth + dx;
+        let newHeight = origHeight + dy;
+        if (newWidth < 30) newWidth = 30;
+        if (newHeight < 30) newHeight = 30;
+        stickerEl.style.width = `${newWidth}px`;
+        stickerEl.style.height = "auto";
+      });
+      resizeHandle.addEventListener("pointerup", e => {
+        if (isResizing) {
+          isResizing = false;
+          resizeHandle.releasePointerCapture(e.pointerId);
+        }
+      });
+      resizeHandle.addEventListener("pointercancel", e => {
+        if (isResizing) {
+          isResizing = false;
+          resizeHandle.releasePointerCapture(e.pointerId);
+        }
+      });
+
+      // Rotating sticker
+      rotateHandle.addEventListener("pointerdown", e => {
+        if (stickerEl.dataset.locked === "true") return;
+        isRotating = true;
+        rotateStartX = e.clientX;
+        rotateStartY = e.clientY;
+        origRotation = parseFloat(stickerEl.dataset.rotation) || 0;
+        rotateHandle.setPointerCapture(e.pointerId);
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      rotateHandle.addEventListener("pointermove", e => {
+        if (!isRotating) return;
+        const rect = stickerEl.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const angle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+        const rotation = angle + 90;
+        stickerEl.style.transform = `rotate(${rotation}deg)`;
+        stickerEl.dataset.rotation = rotation.toString();
+      });
+      rotateHandle.addEventListener("pointerup", e => {
+        if (isRotating) {
+          isRotating = false;
+          rotateHandle.releasePointerCapture(e.pointerId);
+        }
+      });
+      rotateHandle.addEventListener("pointercancel", e => {
+        if (isRotating) {
+          isRotating = false;
+          rotateHandle.releasePointerCapture(e.pointerId);
+        }
+      });
+    }
+
+    // MUSIC MANAGEMENT
+    function loadMusicLibrary() {
+      const loaded = loadFromStorage(STORAGE_KEYS.MUSIC);
+      musicLibrary = Array.isArray(loaded) ? loaded : [];
+    }
+    function saveMusicLibrary() {
+      saveToStorage(STORAGE_KEYS.MUSIC, musicLibrary);
+    }
+    function renderMusicList() {
+      musicList.innerHTML = "";
+      if (musicLibrary.length === 0) {
+        const li = document.createElement("li");
+        li.className = "p-4 text-center text-pink-500 dark:text-pink-400 font-semibold";
+        li.textContent = "No music uploaded.";
+        musicList.appendChild(li);
+        return;
+      }
+      musicLibrary.forEach(track => {
+        const li = document.createElement("li");
+        li.className = "p-3 flex items-center justify-between cursor-pointer hover:bg-pink-200 dark:hover:bg-gray-700 rounded-md";
+        li.tabIndex = 0;
+        li.setAttribute("role", "button");
+        li.setAttribute("aria-label", `Attach music track ${track.name} to entry`);
+        li.dataset.id = track.id;
+
+        const titleSpan = document.createElement("span");
+        titleSpan.className = "truncate text-pink-700 dark:text-pink-300 font-semibold";
+        titleSpan.textContent = track.name;
+
+        const attachBtn = document.createElement("button");
+        attachBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none";
+        attachBtn.title = "Attach this song to current entry";
+        attachBtn.innerHTML = '<i class="fas fa-link"></i>';
+        attachBtn.setAttribute("aria-label", "Attach this song to current entry");
+        attachBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          attachMusicToEntry(track.id);
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "text-red-600 hover:text-red-800 focus:outline-none";
+        delBtn.title = "Delete music track";
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        delBtn.setAttribute("aria-label", "Delete music track");
+        delBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (confirm(`Delete music track "${track.name}"?`)) {
+            if (currentAudioId === track.id) {
+              stopMusic();
+              currentAudioId = null;
+            }
+            musicLibrary = musicLibrary.filter(m => m.id !== track.id);
+            saveMusicLibrary();
+            renderMusicList();
+          }
+        });
+
+        li.appendChild(titleSpan);
+        li.appendChild(attachBtn);
+        li.appendChild(delBtn);
+
+        li.addEventListener("click", () => {
+          attachMusicToEntry(track.id);
+        });
+        li.addEventListener("keydown", e => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            attachMusicToEntry(track.id);
+          }
+        });
+
+        musicList.appendChild(li);
+      });
+    }
+    function attachMusicToEntry(id) {
+      currentAudioId = id;
+      loadMusicById(id);
+      musicPlayerControls.hidden = false;
+    }
+    function loadMusicById(id) {
+      const track = musicLibrary.find(m => m.id === id);
+      if (!track) return;
+      if (currentAudio) {
+        currentAudio.pause();
+        currentAudio = null;
+      }
+      currentAudio = new Audio(track.dataUrl);
+      currentAudio.loop = true;
+      musicTitle.textContent = track.name;
+      musicProgress.value = 0;
+      isPlayingMusic = false;
+      updateMusicPlayPauseIcon();
+
+      currentAudio.addEventListener("timeupdate", () => {
+        if (currentAudio.duration) {
+          musicProgress.value = (currentAudio.currentTime / currentAudio.duration) * 100;
+        }
+      });
+      currentAudio.addEventListener("ended", () => {
+        isPlayingMusic = false;
+        updateMusicPlayPauseIcon();
+      });
+    }
+    function playMusic() {
+      if (!currentAudio) return;
+      currentAudio.play();
+      isPlayingMusic = true;
+      updateMusicPlayPauseIcon();
+    }
+    function pauseMusic() {
+      if (!currentAudio) return;
+      currentAudio.pause();
+      isPlayingMusic = false;
+      updateMusicPlayPauseIcon();
+    }
+    function stopMusic() {
+      if (!currentAudio) return;
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      isPlayingMusic = false;
+      updateMusicPlayPauseIcon();
+      musicPlayerControls.hidden = true;
+      musicTitle.textContent = "No song";
+      musicProgress.value = 0;
+      currentAudioId = null;
+    }
+    function updateMusicPlayPauseIcon() {
+      if (isPlayingMusic) {
+        musicPlayPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+        musicPlayerControls.querySelector(".sound-bars").style.visibility = "visible";
+      } else {
+        musicPlayPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        musicPlayerControls.querySelector(".sound-bars").style.visibility = "hidden";
+      }
+    }
+
+    // VOICE NOTES MANAGEMENT
+    let currentVoiceNotes = [];
+    function renderVoiceNotes(notes) {
+      currentVoiceNotes = notes;
+      voiceNotesList.innerHTML = "";
+      if (notes.length === 0) {
+        const li = document.createElement("li");
+        li.className = "p-2 text-center text-pink-500 dark:text-pink-400 font-semibold";
+        li.textContent = "No voice notes attached.";
+        voiceNotesList.appendChild(li);
+        return;
+      }
+      notes.forEach(note => {
+        const li = document.createElement("li");
+        li.className = "p-2 flex items-center justify-between space-x-2";
+        li.tabIndex = 0;
+        li.setAttribute("role", "group");
+        li.setAttribute("aria-label", `Voice note recorded on ${note.date}`);
+
+        const playBtn = document.createElement("button");
+        playBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none";
+        playBtn.title = "Play voice note";
+        playBtn.innerHTML = '<i class="fas fa-play"></i>';
+        playBtn.setAttribute("aria-label", "Play voice note");
+        playBtn.addEventListener("click", () => {
+          playVoiceNote(note);
+        });
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "text-red-600 hover:text-red-800 focus:outline-none";
+        delBtn.title = "Delete voice note";
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        delBtn.setAttribute("aria-label", "Delete voice note");
+        delBtn.addEventListener("click", () => {
+          if (confirm("Delete this voice note?")) {
+            currentVoiceNotes = currentVoiceNotes.filter(n => n.id !== note.id);
+            renderVoiceNotes(currentVoiceNotes);
+          }
+        });
+
+        const dateSpan = document.createElement("span");
+        dateSpan.className = "text-pink-700 dark:text-pink-300 truncate";
+        dateSpan.textContent = new Date(note.date).toLocaleString();
+
+        li.appendChild(playBtn);
+        li.appendChild(dateSpan);
+        li.appendChild(delBtn);
+
+        voiceNotesList.appendChild(li);
+      });
+    }
+    function playVoiceNote(note) {
+      if (!note || !note.dataUrl) return;
+      const audio = new Audio(note.dataUrl);
+      audio.play();
+    }
+    function startRecording() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("Your browser does not support audio recording.");
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) {
+            recordedChunks.push(e.data);
+          }
+        };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(recordedChunks, { type: "audio/webm" });
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result;
+            const newNote = {
+              id: generateId(),
+              date: new Date().toISOString(),
+              dataUrl
+            };
+            currentVoiceNotes.push(newNote);
+            renderVoiceNotes(currentVoiceNotes);
+          };
+          reader.readAsDataURL(blob);
+        };
+        mediaRecorder.start();
+        isRecording = true;
+        startRecordingBtn.classList.add("hidden");
+        stopRecordingBtn.classList.remove("hidden");
+      }).catch(() => {
+        alert("Microphone access denied.");
+      });
+    }
+    function stopRecording() {
+      if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        startRecordingBtn.classList.remove("hidden");
+        stopRecordingBtn.classList.add("hidden");
+      }
+    }
+
+    // PHOTO COLLAGE MANAGEMENT
+    function renderPhotoCollageCanvas() {
+      photoCollageCanvas.innerHTML = "";
+      photosOnCanvas.forEach(photo => {
+        const photoWrapper = document.createElement("div");
+        photoWrapper.className = "absolute polaroid-frame";
+        photoWrapper.style.left = photo.x + "px";
+        photoWrapper.style.top = photo.y + "px";
+        photoWrapper.style.width = photo.width + "px";
+        photoWrapper.style.height = photo.height + "px";
+        photoWrapper.style.transform = `rotate(${photo.rotation}deg)`;
+        photoWrapper.style.zIndex = photo.zIndex || 1;
+        photoWrapper.dataset.id = photo.id;
+        photoWrapper.tabIndex = 0;
+        photoWrapper.setAttribute("role", "img");
+        photoWrapper.setAttribute("aria-label", `Photo on collage with caption: ${photo.caption || "No caption"}`);
+
+        // Image element
+        const img = document.createElement("img");
+        img.src = photo.dataUrl;
+        img.alt = photo.alt || "User uploaded photo";
+        img.className = "w-full h-full object-cover rounded-md";
+        if (photo.filter) {
+          img.classList.add(photo.filter);
+        }
+
+        // Caption
+        const caption = document.createElement("div");
+        caption.className = "caption";
+        caption.contentEditable = true;
+        caption.spellcheck = true;
+        caption.textContent = photo.caption || "";
+        caption.setAttribute("aria-label", "Edit photo caption");
+        caption.addEventListener("input", e => {
+          photo.caption = caption.textContent;
+        });
+
+        // Decorative tape
+        const tape = document.createElement("div");
+        tape.className = "decorative-tape";
+        tape.style.top = "-10px";
+        tape.style.left = "10px";
+
+        // Controls container
+        const controls = document.createElement("div");
+        controls.className = "absolute top-1 right-1 flex space-x-1 z-30";
+
+        // Delete button
+        const delBtn = document.createElement("button");
+        delBtn.className = "text-red-600 hover:text-red-800 focus:outline-none bg-white bg-opacity-70 rounded p-1";
+        delBtn.title = "Delete photo";
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        delBtn.setAttribute("aria-label", "Delete photo");
+        delBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          if (confirm("Delete this photo from collage?")) {
+            photosOnCanvas = photosOnCanvas.filter(p => p.id !== photo.id);
+            renderPhotoCollageCanvas();
+          }
+        });
+
+        // Bring to front button
+        const frontBtn = document.createElement("button");
+        frontBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none bg-white bg-opacity-70 rounded p-1";
+        frontBtn.title = "Bring photo to front";
+        frontBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        frontBtn.setAttribute("aria-label", "Bring photo to front");
+        frontBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          photo.zIndex = Math.max(...photosOnCanvas.map(p => p.zIndex || 1)) + 1;
+          renderPhotoCollageCanvas();
+        });
+
+        // Send to back button
+        const backBtn = document.createElement("button");
+        backBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none bg-white bg-opacity-70 rounded p-1";
+        backBtn.title = "Send photo to back";
+        backBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+        backBtn.setAttribute("aria-label", "Send photo to back");
+        backBtn.addEventListener("click", e => {
+          e.stopPropagation();
+          photo.zIndex = Math.min(...photosOnCanvas.map(p => p.zIndex || 1)) - 1;
+          renderPhotoCollageCanvas();
+        });
+
+        controls.appendChild(delBtn);
+        controls.appendChild(frontBtn);
+        controls.appendChild(backBtn);
+
+        photoWrapper.appendChild(img);
+        photoWrapper.appendChild(caption);
+        photoWrapper.appendChild(tape);
+        photoWrapper.appendChild(controls);
+
+        // Dragging photo
+        let isDragging = false;
+        let dragStartX, dragStartY, origX, origY;
+        photoWrapper.addEventListener("pointerdown", e => {
+          if (e.target === caption || e.target === delBtn || e.target === frontBtn || e.target === backBtn) return;
+          isDragging = true;
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
+          origX = photo.x;
+          origY = photo.y;
+          photoWrapper.setPointerCapture(e.pointerId);
+          e.preventDefault();
+        });
+        photoWrapper.addEventListener("pointermove", e => {
+          if (!isDragging) return;
+          const dx = e.clientX - dragStartX;
+          const dy = e.clientY - dragStartY;
+          photo.x = origX + dx;
+          photo.y = origY + dy;
+          photoWrapper.style.left = photo.x + "px";
+          photoWrapper.style.top = photo.y + "px";
+        });
+        photoWrapper.addEventListener("pointerup", e => {
+          if (isDragging) {
+            isDragging = false;
+            photoWrapper.releasePointerCapture(e.pointerId);
+          }
+        });
+        photoWrapper.addEventListener("pointercancel", e => {
+          if (isDragging) {
+            isDragging = false;
+            photoWrapper.releasePointerCapture(e.pointerId);
+          }
+        });
+
+        photoCollageCanvas.appendChild(photoWrapper);
+      });
+    }
+    function addPhotosToCollage(files) {
+      Array.from(files).forEach(file => {
+        if (!file.type.startsWith("image/")) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+          photosOnCanvas.push({
+            id: "photo-" + photoIdCounter++,
+            dataUrl: e.target.result,
+            alt: file.name,
+            x: 20 + photosOnCanvas.length * 30,
+            y: 20 + photosOnCanvas.length * 30,
+            width: 120,
+            height: 120,
+            rotation: 0,
+            zIndex: photosOnCanvas.length + 1,
+            caption: "",
+            filter: photoFilterSelect.value !== "none" ? photoFilterSelect.value : null
+          });
+          renderPhotoCollageCanvas();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+    function applyPhotoFilter(filterClass) {
+      photosOnCanvas.forEach(photo => {
+        photo.filter = filterClass !== "none" ? filterClass : null;
+      });
+      renderPhotoCollageCanvas();
+    }
+
+    // MEMORY BOX MANAGEMENT
+    function loadMemoryBox() {
+      const loaded = loadFromStorage(STORAGE_KEYS.MEMORY_BOX);
+      memoryBox = Array.isArray(loaded) ? loaded : [];
+    }
+    function saveMemoryBox() {
+      saveToStorage(STORAGE_KEYS.MEMORY_BOX, memoryBox);
+    }
+    function renderMemoryBox() {
+      memoryBoxList.innerHTML = "";
+      if (memoryBox.length === 0) {
+        const li = document.createElement("li");
+        li.className = "p-4 text-center text-pink-500 dark:text-pink-400 font-semibold";
+        li.textContent = "No treasured memories saved.";
+        memoryBoxList.appendChild(li);
+        return;
+      }
+      memoryBox.forEach(item => {
+        const li = document.createElement("li");
+        li.className = "p-3 border-b border-pink-300 dark:border-gray-700 flex flex-col space-y-1";
+        li.tabIndex = 0;
+        li.setAttribute("role", "group");
+        li.setAttribute("aria-label", `Memory box item: ${item.type} saved on ${new Date(item.date).toLocaleDateString()}`);
+
+        const header = document.createElement("div");
+        header.className = "flex justify-between items-center";
+
+        const title = document.createElement("span");
+        title.className = "font-semibold text-pink-700 dark:text-pink-300 truncate";
+        title.textContent = `${item.type.charAt(0).toUpperCase() + item.type.slice(1)} - ${new Date(item.date).toLocaleDateString()}`;
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "text-red-600 hover:text-red-800 focus:outline-none";
+        delBtn.title = "Delete memory";
+        delBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        delBtn.setAttribute("aria-label", "Delete memory");
+        delBtn.addEventListener("click", () => {
+          if (confirm("Delete this memory?")) {
+            memoryBox = memoryBox.filter(m => m.id !== item.id);
+            saveMemoryBox();
+            renderMemoryBox();
+          }
+        });
+
+        header.appendChild(title);
+        header.appendChild(delBtn);
+
+        li.appendChild(header);
+
+        if (item.type === "voiceNote") {
+          const playBtn = document.createElement("button");
+          playBtn.className = "text-pink-600 hover:text-pink-900 focus:outline-none mt-1";
+          playBtn.title = "Play voice note";
+          playBtn.innerHTML = '<i class="fas fa-play"></i> Play';
+          playBtn.setAttribute("aria-label", "Play voice note");
+          playBtn.addEventListener("click", () => {
+            const audio = new Audio(item.dataUrl);
+            audio.play();
+          });
+          li.appendChild(playBtn);
+        } else if (item.type === "sticker") {
+          const img = document.createElement("img");
+          img.src = item.dataUrl;
+          img.alt = `Sticker image named ${item.name}`;
+          img.className = "w-24 h-auto mt-1 rounded shadow-md";
+          li.appendChild(img);
+        } else if (item.type === "entry") {
+          const dateP = document.createElement("p");
+          dateP.className = "text-pink-700 dark:text-pink-300 mt-1";
+          dateP.textContent = `Entry date: ${item.date}`;
+          li.appendChild(dateP);
+          const snippet = document.createElement("div");
+          snippet.className = "mt-1 p-2 bg-pink-100 dark:bg-gray-800 rounded text-sm max-h-20 overflow-auto";
+          snippet.innerHTML = item.content ? item.content : "(No content)";
+          li.appendChild(snippet);
+        }
+
+        memoryBoxList.appendChild(li);
+      });
+    }
+    function addCurrentToMemoryBox(type) {
+      if (!currentEntryId) {
+        alert("Please load or create an entry first.");
+        return;
+      }
+      if (type === "entry") {
+        const entry = entries.find(e => e.id === currentEntryId);
+        if (!entry) return;
+        const mem = {
+          id: generateId(),
+          type: "entry",
+          date: entry.date,
+          content: entry.content,
+          savedAt: new Date().toISOString()
+        };
+        memoryBox.push(mem);
+      } else if (type === "voiceNote") {
+        if (currentVoiceNotes.length === 0) {
+          alert("No voice notes to save.");
+          return;
+        }
+        // Save last voice note
+        const lastNote = currentVoiceNotes[currentVoiceNotes.length - 1];
+        const mem = {
+          id: generateId(),
+          type: "voiceNote",
+          date: lastNote.date,
+          dataUrl: lastNote.dataUrl,
+          savedAt: new Date().toISOString()
+        };
+        memoryBox.push(mem);
+      } else if (type === "sticker") {
+        // Save last sticker on canvas
+        const lastStickerEl = stickersCanvas.lastElementChild;
+        if (!lastStickerEl) {
+          alert("No stickers on page to save.");
+          return;
+        }
+        const stickerData = stickers.find(s => s.id === lastStickerEl.dataset.id);
+        if (!stickerData) {
+          alert("Sticker data not found.");
+          return;
+        }
+        const mem = {
+          id: generateId(),
+          type: "sticker",
+          name: stickerData.name,
+          dataUrl: stickerData.dataUrl,
+          savedAt: new Date().toISOString()
+        };
+        memoryBox.push(mem);
+      }
+      saveMemoryBox();
+      renderMemoryBox();
+      alert("Added to Memory Box!");
+    }
+
+    // "On This Day" Feature
+    function showOnThisDay() {
+      const today = new Date();
+      const monthDay = today.toISOString().slice(5, 10); // MM-DD
+      const pastEntries = entries.filter(e => e.date.slice(5, 10) === monthDay && e.date.slice(0,4) !== today.getFullYear().toString());
+      if (pastEntries.length === 0) return;
+      pastEntries.sort((a,b) => new Date(b.date) - new Date(a.date));
+      const entry = pastEntries[0];
+      alert(`On This Day (${entry.date}):\n\n${stripHtml(entry.content).slice(0, 200)}${entry.content.length > 200 ? "..." : ""}`);
+    }
+    function stripHtml(html) {
+      let tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      return tmp.textContent || tmp.innerText || "";
+    }
+
+    // EVENT LISTENERS
+
+    // PIN LOCK
+    pinSubmitBtn.addEventListener("click", () => {
+      const pin = pinInput.value.trim();
+      if (checkPin(pin)) {
+        hideAppLock();
+        loadEntries();
+        renderEntriesList();
+        loadStickers();
+        renderStickersList();
+        loadMusicLibrary();
+        renderMusicList();
+        loadMemoryBox();
+        renderMemoryBox();
+        applyTheme(currentTheme);
+        clearEntryForm();
+        showOnThisDay();
+      } else {
+        pinError.classList.remove("hidden");
+        pinInput.value = "";
+        pinInput.focus();
+      }
+    });
+    pinInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        pinSubmitBtn.click();
+      }
+    });
+    setPinBtn.addEventListener("click", () => {
+      showSetPinModal();
+    });
+
+    savePinBtn.addEventListener("click", () => {
+      const newPin = newPinInput.value.trim();
+      const confirmPin = confirmPinInput.value.trim();
+      if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+        setPinError.textContent = "PIN must be exactly 4 digits.";
+        setPinError.classList.remove("hidden");
+        return;
+      }
+      if (newPin !== confirmPin) {
+        setPinError.textContent = "PINs do not match.";
+        setPinError.classList.remove("hidden");
+        return;
+      }
+      localStorage.setItem(STORAGE_KEYS.PIN, newPin);
+      setPinError.classList.add("hidden");
+      hideSetPinModal();
+      alert("PIN saved successfully.");
+      showAppLock();
+    });
+    cancelSetPinBtn.addEventListener("click", () => {
+      hideSetPinModal();
+    });
+
+    btnSetPinSettings.addEventListener("click", () => {
+      hideSettingsPanel();
+      showSetPinModal();
+    });
+
+    // NAVIGATION BUTTONS
+    btnNewEntry.addEventListener("click", () => {
+      clearEntryForm();
+    });
+    btnStickers.addEventListener("click", () => {
+      togglePanel(stickersPanel);
+    });
+    closeStickersPanel.addEventListener("click", () => {
+      hidePanel(stickersPanel);
+    });
+    btnMusic.addEventListener("click", () => {
+      togglePanel(musicPanel);
+    });
+    closeMusicPanel.addEventListener("click", () => {
+      hidePanel(musicPanel);
+    });
+    btnMemoryBox.addEventListener("click", () => {
+      togglePanel(memoryBoxPanel);
+    });
+    closeMemoryBoxPanel.addEventListener("click", () => {
+      hidePanel(memoryBoxPanel);
+    });
+    btnSettings.addEventListener("click", () => {
+      togglePanel(settingsPanel);
+    });
+    closeSettingsPanel.addEventListener("click", () => {
+      hidePanel(settingsPanel);
+    });
+
+    // SEARCH & FILTER
+    searchInput.addEventListener("input", debounce(() => {
+      renderEntriesList(searchInput.value);
+    }, 300));
+    stickerSearchInput.addEventListener("input", debounce(() => {
+      renderStickersList();
+    }, 300));
+    stickerTagsFilter.querySelectorAll(".sticker-tag-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        stickerTagsFilter.querySelectorAll(".sticker-tag-btn").forEach(b => {
+          b.setAttribute("aria-pressed", "false");
+          b.classList.remove("ring-2", "ring-pink-400");
+        });
+        btn.setAttribute("aria-pressed", "true");
+        btn.classList.add("ring-2", "ring-pink-400");
+        renderStickersList();
+      });
+    });
+    moodFilterContainer.querySelectorAll(".mood-filter-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        moodFilterContainer.querySelectorAll(".mood-filter-btn").forEach(b => {
+          b.setAttribute("aria-pressed", "false");
+          b.classList.remove("ring-2", "ring-pink-400");
+        });
+        btn.setAttribute("aria-pressed", "true");
+        btn.classList.add("ring-2", "ring-pink-400");
+        renderEntriesList(searchInput.value);
+      });
+    });
+
+    // ENTRY FORM EVENTS
+    btnSaveEntry.addEventListener("click", () => {
+      saveCurrentEntry();
+    });
+    btnDeleteEntry.addEventListener("click", () => {
+      deleteCurrentEntry();
+    });
+    entryDate.addEventListener("change", () => {
+      // Check if entry exists for date, load it
+      const found = entries.find(e => e.date === entryDate.value);
+      if (found && found.id !== currentEntryId) {
+        if (confirm("An entry exists for this date. Load it? Unsaved changes will be lost.")) {
+          loadEntry(found.id);
+        }
+      }
+    });
+
+    // Background color/image
+    bgColorPicker.addEventListener("input", () => {
+      entryContentWrapper.style.backgroundColor = bgColorPicker.value;
+    });
+    bgImageInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        entryContentWrapper.style.backgroundImage = `url(${ev.target.result})`;
+        entryContentWrapper.style.backgroundSize = "cover";
+        entryContentWrapper.style.backgroundPosition = "center";
+      };
+      reader.readAsDataURL(file);
+      bgImageInput.value = "";
+    });
+    clearBgImageBtn.addEventListener("click", () => {
+      entryContentWrapper.style.backgroundImage = "";
+    });
+
+    // Font customization
+    fontFamilySelect.addEventListener("change", () => {
+      const val = fontFamilySelect.value;
+      if (val.startsWith("font-")) {
+        if (val === "font-indie") {
+          entryContentWrapper.style.fontFamily = "'Indie Flower', cursive";
+        } else if (val === "font-pacifico") {
+          entryContentWrapper.style.fontFamily = "'Pacifico', cursive";
+        } else if (val === "font-robotoslab") {
+          entryContentWrapper.style.fontFamily = "'Roboto Slab', serif";
+        } else {
+          entryContentWrapper.style.fontFamily = "";
+          entryContentWrapper.classList.remove("font-serif", "font-mono", "font-sans");
+          entryContentWrapper.classList.add(val);
+        }
+      }
+    });
+    fontSizeSelect.addEventListener("change", () => {
+      entryContentWrapper.classList.remove("text-base", "text-lg", "text-xl", "text-2xl", "text-3xl");
+      entryContentWrapper.classList.add(fontSizeSelect.value);
+    });
+    fontColorPicker.addEventListener("input", () => {
+      entryContentWrapper.style.color = fontColorPicker.value;
+    });
+    textAlignSelect.addEventListener("change", () => {
+      entryContentWrapper.style.textAlign = textAlignSelect.value;
+    });
+
+    // STICKERS UPLOAD
+    uploadStickerInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (file.type !== "image/png") {
+        alert("Only transparent PNG images are allowed for stickers.");
+        uploadStickerInput.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const newSticker = {
+          id: generateId(),
+          name: file.name,
+          dataUrl: ev.target.result,
+          tags: [],
+          favorite: false
+        };
+        stickers.push(newSticker);
+        saveStickers();
+        renderStickersList();
+      };
+      reader.readAsDataURL(file);
+      uploadStickerInput.value = "";
+    });
+
+    // MUSIC UPLOAD
+    uploadMusicInput.addEventListener("change", e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith("audio/")) {
+        alert("Only audio files are allowed.");
+        uploadMusicInput.value = "";
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const newTrack = {
+          id: generateId(),
+          name: file.name,
+          dataUrl: ev.target.result
+        };
+        musicLibrary.push(newTrack);
+        saveMusicLibrary();
+        renderMusicList();
+      };
+      reader.readAsDataURL(file);
+      uploadMusicInput.value = "";
+    });
+
+    // MUSIC PLAYER CONTROLS
+    musicPlayPauseBtn.addEventListener("click", () => {
+      if (!currentAudio) return;
+      if (isPlayingMusic) {
+        pauseMusic();
+      } else {
+        playMusic();
+      }
+    });
+    musicProgress.addEventListener("input", () => {
+      if (!currentAudio) return;
+      const seekTime = (musicProgress.value / 100) * currentAudio.duration;
+      currentAudio.currentTime = seekTime;
+    });
+
+    // VOICE NOTES RECORDING
+    startRecordingBtn.addEventListener("click", () => {
+      startRecording();
+    });
+    stopRecordingBtn.addEventListener("click", () => {
+      stopRecording();
+    });
+    closeVoiceNotesBtn.addEventListener("click", () => {
+      voiceNotesControls.classList.add("hidden");
+    });
+
+    // PHOTO COLLAGE
+    btnNewEntry.addEventListener("click", () => {
+      photoCollageControls.classList.add("hidden");
+      voiceNotesControls.classList.add("hidden");
+      musicPlayerControls.hidden = true;
+    });
+    closePhotoCollageBtn.addEventListener("click", () => {
+      photoCollageControls.classList.add("hidden");
+    });
+    photoUploadInput.addEventListener("change", e => {
+      addPhotosToCollage(e.target.files);
+      photoUploadInput.value = "";
+    });
+    photoFilterSelect.addEventListener("change", () => {
+      applyPhotoFilter(photoFilterSelect.value);
+    });
+
+    // PANELS TOGGLE
+    function togglePanel(panel) {
+      if (panel.classList.contains("translate-x-full")) {
+        showPanel(panel);
+      } else {
+        hidePanel(panel);
+      }
+    }
+    function showPanel(panel) {
+      panel.classList.remove("translate-x-full");
+      panel.setAttribute("aria-hidden", "false");
+      panel.focus();
+    }
+    function hidePanel(panel) {
+      panel.classList.add("translate-x-full");
+      panel.setAttribute("aria-hidden", "true");
+    }
+    function hideSettingsPanel() {
+      hidePanel(settingsPanel);
+    }
+
+    // INITIALIZATION
+    function init() {
+      // Load theme from storage
+      const storedTheme = localStorage.getItem(STORAGE_KEYS.THEME);
+      if (storedTheme && themes[storedTheme]) {
+        currentTheme = storedTheme;
+        themeSelect.value = storedTheme;
+      }
+      applyTheme(currentTheme);
+
+      themeSelect.addEventListener("change", () => {
+        currentTheme = themeSelect.value;
+        localStorage.setItem(STORAGE_KEYS.THEME, currentTheme);
+        applyTheme(currentTheme);
+      });
+
+      // Show app lock if PIN set
+      if (localStorage.getItem(STORAGE_KEYS.PIN)) {
+        showAppLock();
+      } else {
+        hideAppLock();
+        loadEntries();
+        renderEntriesList();
+        loadStickers();
+        renderStickersList();
+        loadMusicLibrary();
+        renderMusicList();
+        loadMemoryBox();
+        renderMemoryBox();
+        clearEntryForm();
+        showOnThisDay();
+      }
+    }
+
+    // Keyboard shortcuts for stickers canvas (delete, arrow keys)
+    stickersCanvas.addEventListener("keydown", e => {
+      if (!e.target.classList.contains("draggable")) return;
+      const el = e.target;
+      if (el.dataset.locked === "true") return;
+      let left = parseFloat(el.style.left);
+      let top = parseFloat(el.style.top);
+      switch (e.key) {
+        case "Delete":
+        case "Backspace":
+          if (confirm("Delete this sticker?")) {
+            stickersCanvas.removeChild(el);
+          }
+          break;
+        case "ArrowLeft":
+          el.style.left = (left - 5) + "px";
+          break;
+        case "ArrowRight":
+          el.style.left = (left + 5) + "px";
+          break;
+        case "ArrowUp":
+          el.style.top = (top - 5) + "px";
+          break;
+        case "ArrowDown":
+          el.style.top = (top + 5) + "px";
+          break;
+      }
+    });
+
+    // Initialize app
+    init();
+
+  </script>
+</body>
+</html>
